@@ -65,7 +65,7 @@
 #define JFSNAMELEN 64
 #define JFSTYPELEN 8
 
-#define VERSION "15g"
+#define VERSION "1.0.3"
 
 #define CPUMAX (192 * 8) /* MAGIC COOKIE WARNING */
 #define NFS_V2_NAMES_COUNT 18

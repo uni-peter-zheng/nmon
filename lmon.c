@@ -52,6 +52,8 @@ struct global_data g_data = {
 	.bbbr_line = 0,
 	.cur_line = 0,
 	.colour = 1,
+	.update_data = 1,
+	.change_show = 1,
 };
 
 struct help_brk help_brk = {
@@ -132,6 +134,7 @@ struct top_brk top_brk = {
 	.topper = NULL,
 	.cmdfound = 0,
 	.show_count = 100,
+	.cur_ps = 0,
 	.cmdlist = {NULL},
 };
 
@@ -397,7 +400,7 @@ void args_load ()
 			if(tmpstr[strlen(tmpstr)-1]== ' ')
 				tmpstr[strlen(tmpstr)-1]=0;
 			arglist[i].pid = atoi(tmpstr);
-			arglist[i].args = MALLOC(strlen(tmpstr));
+			arglist[i].args = malloc(strlen(tmpstr));
 			strcpy(arglist[i].args,&tmpstr[6]);
 		}
 		pclose(pop);
@@ -583,6 +586,7 @@ char    *getuser(uid_t uid)
 	static int      used = 0;
 	int     i;
 	struct passwd *pw;
+	void * tmp_p = NULL;
 
 	i = 0;
 	if (u != NULL) {
@@ -591,9 +595,11 @@ char    *getuser(uid_t uid)
 				return u[i].name;
 			}
 		}
-		u = (struct user_info *)REALLOC(u, (sizeof(struct user_info ) * (i + 1)));
+		while ((tmp_p = realloc(u, (sizeof(struct user_info ) * (i + 1)))) == NULL)
+			;
+		u = (struct user_info *)tmp_p;
 	} else
-		u = (struct user_info *)MALLOC(sizeof(struct user_info ));
+		u = (struct user_info *)malloc(sizeof(struct user_info ));
 	used++;
 
 	/* failed to find a match so add it */
@@ -811,6 +817,7 @@ int checkinput(void)
 							top_brk.show_top = 1;
 							top_brk.show_topmode =3;
 						}
+						g_data.change_show = 1;
 						break;
 					case '?':
 					case 'h':
@@ -821,41 +828,51 @@ int checkinput(void)
 							help_brk.show_help = 1;
 							cpuinfo_brk.show_verbose = 0;
 						}
+						g_data.change_show = 1;
 						break;
 					case 'b':
 					case 'B':
 						FLIP(g_data.colour);
+						g_data.change_show = 1;
 						clear();
 						break;
 					case 'Z':
 						FLIP(smp_brk.show_raw);
 						smp_brk.show_smp=1;
+						g_data.change_show = 1;
 						break;
 					case 'l':
 						FLIP (cpuinfo_brk.show_longterm);
+						g_data.change_show = 1;
 						break;
 #ifdef POWER
 					case 'p':
 						FLIP(lparcfg_brk.show_lpar);
+						g_data.change_show = 1;
 						break;
 #endif
 					case 'V':
 						FLIP(mem_brk.show_vm);
+						g_data.change_show = 1;
 						break;
 					case 'j':
 					case 'J':
 						FLIP(jfs_brk.show_jfs);
+						g_data.change_show = 1;
 						break;
 					case 'k':
 					case 'K':
 						FLIP(kernel_brk.show_kernel);
+						g_data.change_show = 1;
 						break;
 					case 'm':
 					case 'M':
 						FLIP(mem_brk.show_memory);
+						g_data.change_show = 1;
 						break;
 					case 'L':
 						FLIP(large_brk.show_large);
+						g_data.change_show = 1;
 						break;
 					case 'D':
 						switch (disk_brk.show_disk) {
@@ -869,6 +886,7 @@ int checkinput(void)
 								disk_brk.show_disk = SHOW_DISK_STATS;
 								break;
 						}
+						g_data.change_show = 1;
 						break;
 					case 'd':
 						switch (disk_brk.show_disk) {
@@ -882,10 +900,12 @@ int checkinput(void)
 								disk_brk.show_disk = 0;
 								break;
 						}
+						g_data.change_show = 1;
 						break;
 					case 'o':
 					case 'O':
 						FLIP(disk_brk.show_diskmap);
+						g_data.change_show = 1;
 						break;
 					case 'n':
 						if (net_brk.show_net) {
@@ -895,6 +915,7 @@ int checkinput(void)
 							net_brk.show_net = 1;
 							net_brk.show_neterror = 3;
 						}
+						g_data.change_show = 1;
 						break;
 					case 'N':
 						if(nfs_brk.show_nfs == 0)
@@ -906,22 +927,28 @@ int checkinput(void)
 						else if(nfs_brk.show_nfs == 3)
 							nfs_brk.show_nfs = 0;
 						nfs_brk.nfs_clear=1;
+						g_data.change_show = 1;
 						break;
 					case 'c':
 					case 'C':
 						FLIP(smp_brk.show_smp);
+						g_data.change_show = 1;
 						break;
 					case 'r':
 					case 'R':
 						FLIP(cpuinfo_brk.show_cpu);
+						g_data.change_show = 1;
 						break;
 					case 't':
 						top_brk.show_topmode = 3; /* Fall Through */
+						g_data.change_show = 1;
 					case 'T':
 						FLIP(top_brk.show_top);
+						g_data.change_show = 1;
 						break;
 					case 'v':
 						FLIP(cpuinfo_brk.show_verbose);
+						g_data.change_show = 1;
 						break;
 					case 'u':
 						if (top_brk.show_args == ARGS_NONE) {
@@ -934,10 +961,12 @@ int checkinput(void)
 								top_brk.show_topmode = 3;
 						} else
 							top_brk.show_args = ARGS_NONE;
+						g_data.change_show = 1;
 						break;
 					case '1':
 						top_brk.show_topmode = 1;
 						top_brk.show_top = 1;
+						g_data.change_show = 1;
 						break;
 						/*
 						   case '2':
@@ -949,16 +978,19 @@ int checkinput(void)
 					case '3':
 						top_brk.show_topmode = 3;
 						top_brk.show_top = 1;
+						g_data.change_show = 1;
 						break;
 					case '4':
 						top_brk.show_topmode = 4;
 						top_brk.show_top = 1;
+						g_data.change_show = 1;
 						break;
 					case '5':
 						if(g_data.isroot) {
 							top_brk.show_topmode = 5;
 							top_brk.show_top = 1;
 						}
+						g_data.change_show = 1;
 						break;
 					case '0':
 						for(i=0;i<(cpuinfo_brk.max_cpus+1);i++)
@@ -978,18 +1010,18 @@ int checkinput(void)
 						aiotime_max = 0.0;
 						aiorunning_max = 0;
 						large_brk.huge_peak = 0;
-						break;
-					case ' ':
-						clear();
+						g_data.change_show = 1;
 						break;
 					case 'G':
 						if(disk_brk.auto_dgroup) {
 							FLIP(disk_brk.disk_only_mode);
 							clear();
 						}
+						g_data.change_show = 1;
 						break;
 					case 'g':
 						FLIP(disk_brk.show_dgroup);
+						g_data.change_show = 1;
 						break;
 					case KEY_UP:
 						if (g_data.cur_line > 0)
@@ -1040,6 +1072,7 @@ int checkinput(void)
 					top_brk.show_top = 1;
 					top_brk.show_topmode =3;
 				}
+				g_data.change_show = 1;
 				break;
 			case '?':
 			case 'h':
@@ -1050,41 +1083,51 @@ int checkinput(void)
 					help_brk.show_help = 1;
 					cpuinfo_brk.show_verbose = 0;
 				}
+				g_data.change_show = 1;
 				break;
 			case 'b':
 			case 'B':
 				FLIP(g_data.colour);
+				g_data.change_show = 1;
 				clear();
 				break;
 			case 'Z':
 				FLIP(smp_brk.show_raw);
+				g_data.change_show = 1;
 				smp_brk.show_smp=1;
 				break;
 			case 'l':
 				FLIP (cpuinfo_brk.show_longterm);
+				g_data.change_show = 1;
 				break;
 #ifdef POWER
 			case 'p':
 				FLIP(lparcfg_brk.show_lpar);
+				g_data.change_show = 1;
 				break;
 #endif
 			case 'V':
 				FLIP(mem_brk.show_vm);
+				g_data.change_show = 1;
 				break;
 			case 'j':
 			case 'J':
 				FLIP(jfs_brk.show_jfs);
+				g_data.change_show = 1;
 				break;
 			case 'k':
 			case 'K':
 				FLIP(kernel_brk.show_kernel);
+				g_data.change_show = 1;
 				break;
 			case 'm':
 			case 'M':
 				FLIP(mem_brk.show_memory);
+				g_data.change_show = 1;
 				break;
 			case 'L':
 				FLIP(large_brk.show_large);
+				g_data.change_show = 1;
 				break;
 			case 'D':
 				switch (disk_brk.show_disk) {
@@ -1098,6 +1141,7 @@ int checkinput(void)
 						disk_brk.show_disk = SHOW_DISK_STATS;
 						break;
 				}
+				g_data.change_show = 1;
 				break;
 			case 'd':
 				switch (disk_brk.show_disk) {
@@ -1111,10 +1155,12 @@ int checkinput(void)
 						disk_brk.show_disk = 0;
 						break;
 				}
+				g_data.change_show = 1;
 				break;
 			case 'o':
 			case 'O':
 				FLIP(disk_brk.show_diskmap);
+				g_data.change_show = 1;
 				break;
 			case 'n':
 				if (net_brk.show_net) {
@@ -1124,6 +1170,7 @@ int checkinput(void)
 					net_brk.show_net = 1;
 					net_brk.show_neterror = 3;
 				}
+				g_data.change_show = 1;
 				break;
 			case 'N':
 				if(nfs_brk.show_nfs == 0)
@@ -1135,22 +1182,28 @@ int checkinput(void)
 				else if(nfs_brk.show_nfs == 3)
 					nfs_brk.show_nfs = 0;
 				nfs_brk.nfs_clear=1;
+				g_data.change_show = 1;
 				break;
 			case 'c':
 			case 'C':
 				FLIP(smp_brk.show_smp);
+				g_data.change_show = 1;
 				break;
 			case 'r':
 			case 'R':
 				FLIP(cpuinfo_brk.show_cpu);
+				g_data.change_show = 1;
 				break;
 			case 't':
 				top_brk.show_topmode = 3; /* Fall Through */
+				g_data.change_show = 1;
 			case 'T':
 				FLIP(top_brk.show_top);
+				g_data.change_show = 1;
 				break;
 			case 'v':
 				FLIP(cpuinfo_brk.show_verbose);
+				g_data.change_show = 1;
 				break;
 			case 'u':
 				if (top_brk.show_args == ARGS_NONE) {
@@ -1163,9 +1216,11 @@ int checkinput(void)
 						top_brk.show_topmode = 3;
 				} else
 					top_brk.show_args = ARGS_NONE;
+				g_data.change_show = 1;
 				break;
 			case '1':
 				top_brk.show_topmode = 1;
+				g_data.change_show = 1;
 				top_brk.show_top = 1;
 				break;
 				/*
@@ -1177,10 +1232,12 @@ int checkinput(void)
 				   */
 			case '3':
 				top_brk.show_topmode = 3;
+				g_data.change_show = 1;
 				top_brk.show_top = 1;
 				break;
 			case '4':
 				top_brk.show_topmode = 4;
+				g_data.change_show = 1;
 				top_brk.show_top = 1;
 				break;
 			case '5':
@@ -1188,6 +1245,7 @@ int checkinput(void)
 					top_brk.show_topmode = 5;
 					top_brk.show_top = 1;
 				}
+				g_data.change_show = 1;
 				break;
 			case '0':
 				for(i=0;i<(cpuinfo_brk.max_cpus+1);i++)
@@ -1207,18 +1265,18 @@ int checkinput(void)
 				aiotime_max = 0.0;
 				aiorunning_max = 0;
 				large_brk.huge_peak = 0;
-				break;
-			case ' ':
-				clear();
+				g_data.change_show = 1;
 				break;
 			case 'G':
 				if(disk_brk.auto_dgroup) {
 					FLIP(disk_brk.disk_only_mode);
 					clear();
 				}
+				g_data.change_show = 1;
 				break;
 			case 'g':
 				FLIP(disk_brk.show_dgroup);
+				g_data.change_show = 1;
 				break;
 			case KEY_UP:
 				if (g_data.cur_line > 0)
@@ -1352,12 +1410,143 @@ void child_start(int when,
 	}
 }
 
+inline void curse_display(char * nmon_snap)
+{
+	int i = 0;
+	static int first_key_pressed = 0;
+	/* Reset the cursor position to top left */
+
+
+	if (g_data.update_data || g_data.change_show) {
+		sem_wait (&sem);
+		g_data.y = g_data.x = 0;
+		box(stdscr,0,0);
+		wclear(g_data.pad);
+
+		mvprintw(g_data.x, 1, "nmon");
+		mvprintw(g_data.x, 6, "%s", VERSION);
+		if(flash_on)
+			mvprintw(g_data.x,15,"[H for help]");
+		mvprintw(g_data.x, 30, "Hostname=%s", g_data.hostname);
+		//mvprintw(g_data.x, 52, "Refresh=%2.0fsecs ", g_data.elapsed);
+		mvprintw(g_data.x, 52, "Refresh=%dsecs ", g_data.seconds);
+		mvprintw(g_data.x, 70, "%02d:%02d.%02d",
+				tim->tm_hour, tim->tm_min, tim->tm_sec);
+		wnoutrefresh(stdscr);
+		g_data.x = g_data.x + 1;
+
+		if((welcome_brk.welcome && getenv("NMON") == 0)) {
+			show_welcome(&welcome_brk, &cpuinfo_brk, &lparcfg_brk);
+		}
+		if (cpuinfo_brk.show_verbose) {
+			show_verbose (&cpuinfo_brk, &disk_brk);
+		}
+		if (help_brk.show_help) {
+			show_help(&help_brk);
+		}
+		if (cpuinfo_brk.show_cpu) {
+			show_cpu_info(&cpuinfo_brk, &lparcfg_brk, &g_data.uts);
+		}
+		if (cpuinfo_brk.show_longterm ) {
+			show_longterm(&cpuinfo_brk);
+		}
+		if (smp_brk.show_smp) {
+			if( cpuinfo_brk.old_cpus != cpuinfo_brk.cpus )  {
+				/* wmove(padsmp,0,0); */
+				/* doesn't work CURSE wclrtobot(padsmp); */
+				/* Do BRUTE force overwrite of previous data */
+				if( cpuinfo_brk.cpus < cpuinfo_brk.old_cpus)    {
+					for(i=cpuinfo_brk.cpus; i < cpuinfo_brk.old_cpus; i++)
+						mvwprintw(g_data.pad,g_data.x + i + 4,0,"                                                                                    ");
+				}
+			}
+			if (smp_brk.show_smp) {
+				show_smp(&smp_brk, &cpuinfo_brk, &lparcfg_brk);
+			}       /* if (show_smp)  */
+		}       /* if (show_smp || cpuinfo_brk.show_verbose) */
+#ifdef POWER
+		if (lparcfg_brk.show_lpar) {
+			show_lpar(&lparcfg_brk, &cpuinfo_brk);
+		}
+#endif /*POWER*/
+		if (mem_brk.show_memory) {
+			show_mem (&mem_brk, &lparcfg_brk);
+		}
+		if (large_brk.show_large) {
+			show_large(&large_brk);
+		}
+		if (mem_brk.show_vm) {
+			show_vm(&mem_brk);
+		}
+		if (kernel_brk.show_kernel) {
+			show_kernel(&kernel_brk);
+		}
+
+		if (nfs_brk.show_nfs) {
+			show_nfs(&nfs_brk);
+		}
+		if (net_brk.show_net) {
+			show_net(&net_brk);
+		}
+#ifdef JFS
+		if (jfs_brk.show_jfs) {
+			jfs_load(&jfs_brk, LOAD);
+			show_jfs(&jfs_brk);
+			jfs_load(&jfs_brk, UNLOAD);
+		}
+#endif /* JFS */
+		if (disk_brk.show_diskmap) {
+			show_diskmap(&disk_brk);
+		}
+		if (disk_brk.show_disk) {
+			show_disk (&disk_brk);
+		}
+		if ((disk_brk.show_dgroup || (!cursed && disk_brk.dgroup_loaded))) {
+			show_dgroup(&disk_brk);
+		}       /*              if ((show_dgroup || (!cursed && dgroup_loaded)))  */
+
+		if (top_brk.show_top) {
+			show_top_info (&top_brk, mem_brk.pagesize, ignore_procdisk_threshold);
+		}
+		sem_post (&sem);
+		g_data.update_data = 0;
+		g_data.change_show = 0;
+	}
+	wmove(stdscr,0, 0);
+
+	if (g_data.cur_line + LINES - 2 < g_data.x)
+		mvwprintw(stdscr, LINES-1, 10, "Warning: Some Statistics may not shown");
+
+	/* underline the end of the stats area border */
+	mvwhline(g_data.pad, g_data.x - 1, 0, ACS_HLINE,COLS-2);
+
+	//wrefresh(stdscr);
+	//doupdate();
+
+	//			if(g_data.x < LINES-2)
+	//				mvwhline(stdscr, g_data.x, 1, ' ', COLS-2);
+	/*if(first_key_pressed == 0){
+		first_key_pressed = 1;
+		wmove(stdscr,0, 0);
+		wclear(stdscr);
+		wmove(stdscr,0,0);
+		wclrtobot(stdscr);
+		wrefresh(stdscr);
+		//doupdate();
+	}*/
+	prefresh(g_data.pad, g_data.cur_line,0,1,1,LINES-2,COLS-2);
+	//wnoutrefresh(stdscr);
+	doupdate();
+	if (checkinput()) {
+		welcome_brk.welcome = 0;
+	}
+}
+
 void main_loop (char * nmon_start, char * nmon_end, char * nmon_snap, char * nmon_tmp)
 {
 	int ret;
 	int i = 0;
 	int k = 0;
-	int first_key_pressed = 0;
 	double nmon_start_time = 0.0;
 	double nmon_end_time = 0.0;
 	double nmon_run_time = -1.0;
@@ -1366,8 +1555,11 @@ void main_loop (char * nmon_start, char * nmon_end, char * nmon_snap, char * nmo
 	struct timeval nmon_tv; /* below is used to workout the nmon run, accumalate it and the
 							   allow for in in the sleep time  to reduce time drift */
 
+
+	sem_wait (&sem);
 	g_data.p->time = doubletime();
 	g_data.elapsed = g_data.p->time - g_data.q->time;
+	sem_post (&sem);
 	set_timer(0);
 	tim = get_timer();
 
@@ -1381,8 +1573,6 @@ void main_loop (char * nmon_start, char * nmon_end, char * nmon_snap, char * nmo
 		 */
 		cpuinfo_brk.old_cpus = cpuinfo_brk.cpus;
 
-		/* Reset the cursor position to top left */
-		g_data.y = g_data.x = 0;
 
 		if (lparcfg_brk.lparcfg.timebase == -1) {
 			lparcfg_brk.lparcfg.timebase = 0;
@@ -1394,134 +1584,7 @@ void main_loop (char * nmon_start, char * nmon_end, char * nmon_snap, char * nmo
 			}
 		}
 		if (cursed) { /* Top line */
-			box(stdscr,0,0);
-			wclear(g_data.pad);
-
-			mvprintw(g_data.x, 1, "nmon");
-			mvprintw(g_data.x, 6, "%s", VERSION);
-			if(flash_on)
-				mvprintw(g_data.x,15,"[H for help]");
-			mvprintw(g_data.x, 30, "Hostname=%s", g_data.hostname);
-			//mvprintw(g_data.x, 52, "Refresh=%2.0fsecs ", g_data.elapsed);
-			mvprintw(g_data.x, 52, "Refresh=%dsecs ", g_data.seconds);
-			mvprintw(g_data.x, 70, "%02d:%02d.%02d",
-					tim->tm_hour, tim->tm_min, tim->tm_sec);
-			wnoutrefresh(stdscr);
-			g_data.x = g_data.x + 1;
-
-			if((welcome_brk.welcome && getenv("NMON") == 0)) {
-				show_welcome(&welcome_brk, &cpuinfo_brk, &lparcfg_brk);
-			} else {
-				if (!cursed) {
-					if (nmon_snap && (g_data.loop % nmon_one_in) == 0 ) {
-						child_start(CHLD_SNAP, nmon_snap, time_stamp_type, g_data.loop, get_timer_t ());
-					}
-
-				}
-			}
-			sem_wait (&sem);
-			if (cpuinfo_brk.show_verbose) {
-				show_verbose (&cpuinfo_brk, &disk_brk);
-			}
-			if (help_brk.show_help) {
-				show_help(&help_brk);
-			}
-			/* for debugging use only
-			   if(error_on && errorstr[0] != 0) {
-			   mvprintw(x, 0, "Error: %s  ",errorstr);
-			   x = x + 1;
-			   }
-			   */
-			if (cpuinfo_brk.show_cpu) {
-				show_cpu_info(&cpuinfo_brk, &lparcfg_brk, &g_data.uts);
-			}
-			if (cpuinfo_brk.show_longterm ) {
-				show_longterm(&cpuinfo_brk);
-			}
-			if (smp_brk.show_smp) {
-				if( cpuinfo_brk.old_cpus != cpuinfo_brk.cpus )  {
-					/* wmove(padsmp,0,0); */
-					/* doesn't work CURSE wclrtobot(padsmp); */
-					/* Do BRUTE force overwrite of previous data */
-					if( cpuinfo_brk.cpus < cpuinfo_brk.old_cpus)    {
-						for(i=cpuinfo_brk.cpus; i < cpuinfo_brk.old_cpus; i++)
-							mvwprintw(g_data.pad,g_data.x + i + 4,0,"                                                                                    ");
-					}
-				}
-				if (smp_brk.show_smp) {
-					show_smp(&smp_brk, &cpuinfo_brk, &lparcfg_brk);
-				}       /* if (show_smp)  */
-			}       /* if (show_smp || cpuinfo_brk.show_verbose) */
-#ifdef POWER
-			if (lparcfg_brk.show_lpar) {
-				show_lpar(&lparcfg_brk, &cpuinfo_brk);
-			}
-#endif /*POWER*/
-			if (mem_brk.show_memory) {
-				show_mem (&mem_brk, &lparcfg_brk);
-			}
-			if (large_brk.show_large) {
-				show_large(&large_brk);
-			}
-			if (mem_brk.show_vm) {
-				show_vm(&mem_brk);
-			}
-			if (kernel_brk.show_kernel) {
-				show_kernel(&kernel_brk);
-			}
-
-			if (nfs_brk.show_nfs) {
-				show_nfs(&nfs_brk);
-			}
-			if (net_brk.show_net) {
-				show_net(&net_brk);
-			}
-#ifdef JFS
-			if (jfs_brk.show_jfs) {
-				jfs_load(&jfs_brk, LOAD);
-				show_jfs(&jfs_brk);
-				jfs_load(&jfs_brk, UNLOAD);
-			}
-#endif /* JFS */
-			if (disk_brk.show_diskmap) {
-				show_diskmap(&disk_brk);
-			}
-			if (disk_brk.show_disk) {
-				show_disk (&disk_brk);
-			}
-			if ((disk_brk.show_dgroup || (!cursed && disk_brk.dgroup_loaded))) {
-				show_dgroup(&disk_brk);
-			}       /*              if ((show_dgroup || (!cursed && dgroup_loaded)))  */
-
-			if (top_brk.show_top) {
-				show_top_info (&top_brk, mem_brk.pagesize, ignore_procdisk_threshold);
-			}
-			sem_post (&sem);
-			if (g_data.cur_line + LINES - 2 < g_data.x)
-				mvwprintw(stdscr, LINES-1, 10, "Warning: Some Statistics may not shown");
-
-			/* underline the end of the stats area border */
-			mvwhline(g_data.pad, g_data.x - 1, 0, ACS_HLINE,COLS-2);
-
-			wmove(stdscr,0, 0);
-			wrefresh(stdscr);
-			//doupdate();
-
-			//			if(g_data.x < LINES-2)
-			//				mvwhline(stdscr, g_data.x, 1, ' ', COLS-2);
-			if(first_key_pressed == 0){
-				first_key_pressed = 1;
-				wmove(stdscr,0, 0);
-				wclear(stdscr);
-				wmove(stdscr,0,0);
-				wclrtobot(stdscr);
-				wrefresh(stdscr);
-				//doupdate();
-			}
-			prefresh(g_data.pad, g_data.cur_line,0,1,1,LINES-2,COLS-2);
-			if (checkinput()) {
-				welcome_brk.welcome = 0;
-			}
+			curse_display(nmon_snap);
 		}
 		else {
 			gettimeofday(&nmon_tv, 0);
@@ -1620,6 +1683,7 @@ void * collect_thread (void * args)
 		//			collect_nfs(&nfs_brk);
 		//			collect_large(&large_brk);
 		g_data.loop++;
+		g_data.update_data = 1;
 		sem_post (&sem);
 		fflush(NULL);
 	}
@@ -1836,7 +1900,7 @@ int main(int argc, char **argv)
 						  disk_brk.disks_per_line = 100;
 					  break;
 			case 'C': /* commandlist argument */
-					  top_brk.cmdlist[0] = MALLOC(strlen(optarg)+1); /* create buffer */
+					  top_brk.cmdlist[0] = malloc(strlen(optarg)+1); /* create buffer */
 					  strcpy(top_brk.cmdlist[0],optarg);
 					  if(top_brk.cmdlist[0][0]!= 0)
 						  top_brk.cmdfound=1;
@@ -1901,24 +1965,26 @@ int main(int argc, char **argv)
 	proc_kernel(&kernel_brk);
 	memcpy(&(g_data.q->cpu_total), &(g_data.p->cpu_total), sizeof(struct cpu_stat));
 
-	g_data.p->dk = MALLOC(sizeof(struct dsk_stat) * disk_brk.diskmax+1);
-	g_data.q->dk = MALLOC(sizeof(struct dsk_stat) * disk_brk.diskmax+1);
-	disk_brk.disk_busy_peak = MALLOC(sizeof(double) * disk_brk.diskmax);
-	disk_brk.disk_rate_peak = MALLOC(sizeof(double) * disk_brk.diskmax);
+	g_data.p->dk = malloc(sizeof(struct dsk_stat) * disk_brk.diskmax+1);
+	g_data.q->dk = malloc(sizeof(struct dsk_stat) * disk_brk.diskmax+1);
+	disk_brk.disk_busy_peak = malloc(sizeof(double) * disk_brk.diskmax);
+	disk_brk.disk_rate_peak = malloc(sizeof(double) * disk_brk.diskmax);
 	for(i=0;i < disk_brk.diskmax;i++) {
 		disk_brk.disk_busy_peak[i]=0.0;
 		disk_brk.disk_rate_peak[i]=0.0;
 	}
-	cpuinfo_brk.cpu_peak = MALLOC(sizeof(double) * (CPUMAX + 1)); /* MAGIC */
+	cpuinfo_brk.cpu_peak = malloc(sizeof(double) * (CPUMAX + 1)); /* MAGIC */
 	for(i=0;i < cpuinfo_brk.max_cpus+1;i++)
 		cpuinfo_brk.cpu_peak[i]=0.0;
 
 	n = getprocs(&g_data, 0, g_data.p);
-	g_data.p->procs = MALLOC(sizeof(struct procsinfo ) * n  +8);
-	g_data.q->procs = MALLOC(sizeof(struct procsinfo ) * n  +8);
+	if (n != 0)
+		top_brk.cur_ps = n;
+	g_data.p->procs = malloc((sizeof(struct procsinfo ) * (n+1)));
+	g_data.q->procs = malloc((sizeof(struct procsinfo ) * (n+1)));
 	g_data.p->nprocs = g_data.q->nprocs = n;
 	/* Initialise the top processes table */
-	top_brk.topper = MALLOC(sizeof(struct topper ) * top_brk.topper_size); /* round up */
+	top_brk.topper = malloc(sizeof(struct topper ) * top_brk.topper_size); /* round up */
 
 	/* Get Disk Stats. */
 	proc_disk(&disk_brk);

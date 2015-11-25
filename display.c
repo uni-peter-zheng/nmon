@@ -329,7 +329,7 @@ void show_cpu_info (struct cpuinfo_brk * cpuinfo_brk, struct lparcfg_brk * lparc
 
 void show_top_info (struct top_brk * top_brk, unsigned long pagesize, double ignore_procdisk_threshold)
 {
-	if (top_brk == NULL)
+	if (top_brk == NULL || top_brk->ext->p->nprocs == 0)
 		return;
 	char * formatstring;
 	int i;
@@ -351,13 +351,13 @@ void show_top_info (struct top_brk * top_brk, unsigned long pagesize, double ign
 
 	n = get_progress_num(p);
 	if (top_brk->topper_size < n) {
-		top_brk->topper = REALLOC(top_brk->topper, sizeof(struct topper ) * (n+1) ); /* add one to avoid overrun */
+		top_brk->topper = realloc(top_brk->topper, sizeof(struct topper ) * (n+1) ); /* add one to avoid overrun */
 		top_brk->topper_size = n;
 	}
 	/* Sort the processes by CPU utilisation */
 	for ( i = 0, top_brk->max_sorted = 0; i < n; i++) {
 		/* move forward in the previous array to find a match*/
-		for(j=0;j < q->nprocs;j++) {
+		for(j=0;j < top_brk->cur_ps; j++) {
 			if (p->procs[i].pi_pid == q->procs[j].pi_pid) { /* found a match */
 				top_brk->topper[top_brk->max_sorted].index = i;
 				top_brk->topper[top_brk->max_sorted].other = j;
@@ -383,9 +383,9 @@ void show_top_info (struct top_brk * top_brk, unsigned long pagesize, double ign
 	}
 	BANNER(g_data->pad,*x,"Top Processes");
 	if(top_brk->ext->isroot) {
-		mvwprintw(g_data->pad,*x+0, 15, "Procs=%d mode=%d (1=Basic, 3=Perf 4=Size 5=I/O)", n, top_brk->show_topmode);
+		mvwprintw(g_data->pad,*x+0, 15, "Procs=%d mode=%d (1=Basic, 3=Perf 4=Size 5=I/O)", top_brk->cur_ps, top_brk->show_topmode);
 	} else {
-		mvwprintw(g_data->pad,*x+0, 15, "Procs=%d mode=%d (1=Basic, 3=Perf 4=Size 5=(root-only))", n, top_brk->show_topmode);
+		mvwprintw(g_data->pad,*x+0, 15, "Procs=%d mode=%d (1=Basic, 3=Perf 4=Size 5=(root-only))", top_brk->cur_ps, top_brk->show_topmode);
 	}
 	if(top_brk->top_first_time) {
 		mvwprintw(g_data->pad,*x+1, 1, "Please wait - information being collected");
@@ -394,7 +394,7 @@ void show_top_info (struct top_brk * top_brk, unsigned long pagesize, double ign
 		switch (top_brk->show_topmode) {
 			case 1:
 				mvwprintw(g_data->pad,*x+1, 1, "  PID      PPID  Pgrp Nice Prior Status    proc-Flag Command");
-				for (j = 0; j < show_count; j++) {
+				for (j = 0; j < show_count && j < top_brk->cur_ps; j++) {
 					i = top_brk->topper[j].index;
 					if (p->procs[i].pi_pgrp == p->procs[i].pi_pid)
 						strcpy(pgrp, "none");
@@ -950,7 +950,7 @@ void show_help (struct help_brk * help_brk)
 	mvwprintw(g_data->pad,*x+13, 5, "b = black & white mode");
 	mvwprintw(g_data->pad,*x+14, 5, "--- controls ---");
 	mvwprintw(g_data->pad,*x+15, 5, "+ and - = double or half the screen refresh time");
-	mvwprintw(g_data->pad,*x+16, 5, "q = quit                     space = refresh screen now");
+	mvwprintw(g_data->pad,*x+16, 5, "q = quit");
 	mvwprintw(g_data->pad,*x+17, 5, ". = Minimum Mode =display only busy disks and processes");
 	mvwprintw(g_data->pad,*x+18, 5, "0 = reset peak counts to zero (peak = \">\")");
 	mvwprintw(g_data->pad,*x+19, 5, "Developer Nigel Griffiths see http://nmon.sourceforge.net");

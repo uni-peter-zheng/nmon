@@ -387,6 +387,9 @@ struct global_data {
         int isroot;
 		int bbbr_line;
 		int cur_line;
+
+		int update_data;
+		int change_show;
 };
 
 struct topper {
@@ -503,6 +506,7 @@ struct top_brk {
         int cmdfound;
         int skipped;
 		int show_count;
+		int cur_ps;
         char *cmdlist[CMDMAX];
 
         struct global_data * ext;

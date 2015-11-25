@@ -54,6 +54,7 @@ void proc_read (struct proc_file * proc, int num)
 	int size;
 	int found;
 	char buf[1024];
+	void * tmp_p = NULL;
 
 	if(proc[num].read_this_interval == 1 )
 		return;
@@ -74,7 +75,7 @@ void proc_read (struct proc_file * proc, int num)
 
 	if(proc[num].size == 0) {
 		/* first time so allocate  initial now */
-		proc[num].buf = MALLOC(512);
+		proc[num].buf = malloc(512);
 		proc[num].size = 512;
 	}
 
@@ -83,7 +84,10 @@ void proc_read (struct proc_file * proc, int num)
 		if(size < proc[num].size -1)
 			break;
 		proc[num].size +=512;
-		proc[num].buf = REALLOC(proc[num].buf,proc[num].size);
+		 
+		while ((tmp_p = realloc(proc[num].buf,proc[num].size)) == NULL)
+			;
+		proc[num].buf = tmp_p;
 		rewind(proc[num].fp);
 	}
 

@@ -172,7 +172,7 @@ void __find_release(struct cpuinfo_brk * cpuinfo_brk)
 			if(fgets(tmpstr, 70, pop) == NULL)
 				break;
 			tmpstr[strlen(tmpstr)-1]=0; /* remove newline */
-			cpuinfo_brk->easy[i] = MALLOC(strlen(tmpstr)+1);
+			cpuinfo_brk->easy[i] = malloc(strlen(tmpstr)+1);
 			strcpy(cpuinfo_brk->easy[i],tmpstr);
 		}
 		pclose(pop);
@@ -184,7 +184,7 @@ void __find_release(struct cpuinfo_brk * cpuinfo_brk)
 			if(fgets(tmpstr, 70, pop) == NULL)
 				break;
 			tmpstr[strlen(tmpstr)-1]=0; /* remove newline */
-			cpuinfo_brk->lsb_release[i] = MALLOC(strlen(tmpstr)+1);
+			cpuinfo_brk->lsb_release[i] = malloc(strlen(tmpstr)+1);
 			strcpy(cpuinfo_brk->lsb_release[i],tmpstr);
 		}
 		pclose(pop);
@@ -287,15 +287,19 @@ inline int get_progress_data (struct global_data * g_data)
 		return 0;
 	int n = 0;
 	struct data * p = g_data->p;
+	void * tmp_p = NULL;
+	int count = 0;
 
-	n = getprocs(g_data, 1, g_data->p);
-	if (n > p->nprocs) {
-		n = n +128; /* allow for growth in the number of processes in the mean time */
-		p->procs = REALLOC(p->procs, sizeof(struct procsinfo) * (n+1) ); /* add one to avoid overrun */
+	count = getprocs(g_data, 1, g_data->p);
+	if (count > p->nprocs) {
+		n = count +128; /* allow for growth in the number of processes in the mean time */
+		
+		while ((tmp_p = realloc(p->procs,(sizeof(struct procsinfo) * (n+1)))) == NULL) /* add one to avoid overrun */
+			;
+		p->procs = (struct procsinfo *)tmp_p;
 		p->nprocs = n;
 	}
-
-	return n;
+	return count;
 }
 
 inline int get_progress_num (struct data * p)
@@ -351,11 +355,16 @@ void refresh_all_data (struct cpuinfo_brk * cpuinfo_brk, \
 
 	int n = 0;
 	struct global_data * g_data = cpuinfo_brk->ext;
+	void * tmp_p = NULL;
 	switcher();
 	n = get_progress_data(g_data);
-	if (top_brk->topper_size < n) {
-		top_brk->topper = REALLOC(top_brk->topper, sizeof(struct topper ) * (n+1) ); /* add one to avoid overrun */
-		top_brk->topper_size = n;
+	if (n != 0)
+		top_brk->cur_ps = n;
+	if (top_brk->topper_size < g_data->p->nprocs) {
+		while ((tmp_p = realloc(top_brk->topper, sizeof(struct topper ) * (g_data->p->nprocs + 1))) == NULL) /* add one to avoid overrun */
+			;
+		top_brk->topper = (struct topper *)tmp_p;
+		top_brk->topper_size = g_data->p->nprocs;
 	}
 
 	proc_read(g_data->proc, P_STAT);
@@ -839,7 +848,7 @@ void load_dgroup(struct disk_brk * disk_brk, struct dsk_stat *dk)
 
 	if (disk_brk->dgroup_loaded == 2)
 		return;
-	disk_brk->dgroup_data = MALLOC(sizeof(int)*DGROUPS * DGROUPITEMS);
+	disk_brk->dgroup_data = malloc(sizeof(int)*DGROUPS * DGROUPITEMS);
 	for (i = 0; i < DGROUPS; i++)
 		for (j = 0; j < DGROUPITEMS; j++)
 			disk_brk->dgroup_data[i*DGROUPITEMS+j] = -1;
@@ -870,7 +879,7 @@ void load_dgroup(struct disk_brk * disk_brk, struct dsk_stat *dk)
 			continue;
 		}
 		/* Added +1 to be able to correctly store the terminating \0 character */
-		disk_brk->dgroup_name[disk_brk->dgroup_total_groups] = MALLOC(strlen(name)+1);
+		disk_brk->dgroup_name[disk_brk->dgroup_total_groups] = malloc(strlen(name)+1);
 		strcpy(disk_brk->dgroup_name[disk_brk->dgroup_total_groups], name);
 
 		/* save the hdisks */
