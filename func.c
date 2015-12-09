@@ -281,7 +281,7 @@ void get_intel_spec() {
 		hyperthreads=0;
 }
 #endif
-inline int get_progress_data (struct global_data * g_data)
+int get_progress_data (struct global_data * g_data)
 {
 	if (g_data == NULL)
 		return 0;
@@ -290,15 +290,15 @@ inline int get_progress_data (struct global_data * g_data)
 	void * tmp_p = NULL;
 	int count = 0;
 
-	count = getprocs(g_data, 1, g_data->p);
+	count = getprocs(g_data, 0, g_data->p);
 	if (count > p->nprocs) {
-		n = count +128; /* allow for growth in the number of processes in the mean time */
-		
+		n = count + 128; /* allow for growth in the number of processes in the mean time */
 		while ((tmp_p = realloc(p->procs,(sizeof(struct procsinfo) * (n+1)))) == NULL) /* add one to avoid overrun */
 			;
 		p->procs = (struct procsinfo *)tmp_p;
 		p->nprocs = n;
 	}
+	count = getprocs(g_data, 1, g_data->p);
 	return count;
 }
 

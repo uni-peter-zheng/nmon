@@ -1982,6 +1982,10 @@ int main(int argc, char **argv)
 		top_brk.cur_ps = n;
 	g_data.p->procs = malloc((sizeof(struct procsinfo ) * (n+1)));
 	g_data.q->procs = malloc((sizeof(struct procsinfo ) * (n+1)));
+    if (g_data.p->procs == NULL || g_data.q->procs == NULL) {
+        fprintf (stderr, "malloc for progress data error\n");
+        return 0;
+    }
 	g_data.p->nprocs = g_data.q->nprocs = n;
 	/* Initialise the top processes table */
 	top_brk.topper = malloc(sizeof(struct topper ) * top_brk.topper_size); /* round up */

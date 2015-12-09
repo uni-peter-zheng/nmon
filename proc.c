@@ -640,7 +640,10 @@ int proc_procsinfo(struct global_data * g_data, int pid, int index, struct data 
 				if(isnumbers(dent->d_name)) {
 					/*                      printf("%s pid\n",dent->d_name); */
 					if(details) {
-						count=count + proc_procsinfo(g_data, atoi(dent->d_name),count, p);
+                        if (p->nprocs > count)
+						    count = count + proc_procsinfo(g_data, atoi(dent->d_name),count, p);
+                        else
+                            count++;
 					} else {
 						count++;
 					}
