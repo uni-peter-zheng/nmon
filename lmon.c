@@ -1555,13 +1555,12 @@ void main_loop (char * nmon_start, char * nmon_end, char * nmon_snap, char * nmo
 	struct timeval nmon_tv; /* below is used to workout the nmon run, accumalate it and the
 							   allow for in in the sleep time  to reduce time drift */
 
-
 	sem_wait (&sem);
 	g_data.p->time = doubletime();
 	g_data.elapsed = g_data.p->time - g_data.q->time;
 	sem_post (&sem);
-	set_timer(0);
-	tim = get_timer();
+	//set_timer (0);
+	tim = get_timer (); 
 
 	for(g_data.loop = 1; ; ) {
 		/* Save the time and work out how long we were actually asleep
@@ -1572,7 +1571,6 @@ void main_loop (char * nmon_start, char * nmon_end, char * nmon_snap, char * nmo
 		 * As side effect /proc/stat is read
 		 */
 		cpuinfo_brk.old_cpus = cpuinfo_brk.cpus;
-
 
 		if (lparcfg_brk.lparcfg.timebase == -1) {
 			lparcfg_brk.lparcfg.timebase = 0;
@@ -2030,6 +2028,7 @@ int main(int argc, char **argv)
 	signal(SIGWINCH, interrupt);
 	signal(SIGCHLD, interrupt);
 
+	g_data.fp_ss = open_log_file(&g_data, varperftmp);
 	/* Start Curses */
 	if (cursed) {
 		initscr();
@@ -2066,7 +2065,6 @@ int main(int argc, char **argv)
 			child_start(CHLD_START, nmon_start, time_stamp_type, 1, get_timer_t ());
 		}
 	}
-	g_data.fp_ss = open_log_file(&g_data, varperftmp);
 
 	/* To get the pointers setup */
 	/* Was already done earlier, DONT'T switch back here to the old pointer! - switcher(); */

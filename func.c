@@ -405,11 +405,15 @@ void write_header_lines (char * user_filename, struct top_brk * top_brk, struct 
 	int argc = cpuinfo_brk->ext->argc;
 	struct tm *tim; /* used to work out the hour/min/second */
 	struct data * p = cpuinfo_brk->ext->p;
+	int tm_year = 0;
+	int tm_mon = 0;
 
 	set_timer(0);
 	tim = get_timer();
 	tim->tm_year += 1900 - 2000;  /* read localtime() manual page!! */
 	tim->tm_mon  += 1; /* because it is 0 to 11 */
+	tm_year = tim->tm_year;
+	tm_mon = tim->tm_mon;
 
 	fprintf(fp_ss,"AAA,progname,%s\n", cpuinfo_brk->ext->progname);
 	fprintf(fp_ss,"AAA,command,");
@@ -426,7 +430,7 @@ void write_header_lines (char * user_filename, struct top_brk * top_brk, struct 
 	fprintf(fp_ss,"AAA,OS,Linux,%s,%s,%s\n", cpuinfo_brk->ext->uts.release, cpuinfo_brk->ext->uts.version, cpuinfo_brk->ext->uts.machine);
 	fprintf(fp_ss,"AAA,runname,%s\n", cpuinfo_brk->ext->run_name);
 	fprintf(fp_ss,"AAA,time,%02d:%02d.%02d\n", tim->tm_hour, tim->tm_min, tim->tm_sec);
-	fprintf(fp_ss,"AAA,date,%02d-%3s-%02d\n", tim->tm_mday, month[tim->tm_mon-1], tim->tm_year+2000);
+	fprintf(fp_ss,"AAA,date,%02d-%3s-%02d\n", tim->tm_mday, month[tm_mon-1], tm_year + 2000);
 	fprintf(fp_ss,"AAA,interval,%d\n", cpuinfo_brk->ext->seconds);
 	fprintf(fp_ss,"AAA,snapshots,%d\n", cpuinfo_brk->ext->maxloops);
 #ifdef POWER
@@ -1155,10 +1159,10 @@ void plot_snap(struct cpuinfo_brk * cpuinfo_brk)
 	}
 	if(colour)  wattrset(pad,COLOR_PAIR(0));
 	for (i = 0; i < MAX_SNAP_ROWS; i++) {
-		wmove(pad,*x + MAX_SNAP_ROWS-i, cpuinfo_brk->next_cpu_snap+SNAP_OFFSET);
+		wmove(pad,*x + MAX_SNAP_ROWS - i, cpuinfo_brk->next_cpu_snap + SNAP_OFFSET);
 		wprintw(pad,"|");
 	}
-	wmove(pad,*x + MAX_SNAP_ROWS+1 - (snap_average(cpuinfo_brk) / 5), cpuinfo_brk->next_cpu_snap+SNAP_OFFSET);
+	wmove(pad,*x + MAX_SNAP_ROWS + 1 - (snap_average(cpuinfo_brk) / 5), cpuinfo_brk->next_cpu_snap + SNAP_OFFSET);
 	wprintw(pad,"+");
 	if(cpuinfo_brk->dotline) {
 		for (i = 0; i < MAX_SNAPS; i++) {
