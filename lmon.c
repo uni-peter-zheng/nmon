@@ -598,8 +598,12 @@ char    *getuser(uid_t uid)
 		while ((tmp_p = realloc(u, (sizeof(struct user_info ) * (i + 1)))) == NULL)
 			;
 		u = (struct user_info *)tmp_p;
-	} else
-		u = (struct user_info *)malloc(sizeof(struct user_info ));
+	} else {
+		if((u = (struct user_info *)malloc(sizeof(struct user_info ))) == NULL) {
+			perror("alloc user_info memory");
+			exit(0);
+		}
+	}
 	used++;
 
 	/* failed to find a match so add it */
@@ -1963,15 +1967,30 @@ int main(int argc, char **argv)
 	proc_kernel(&kernel_brk);
 	memcpy(&(g_data.q->cpu_total), &(g_data.p->cpu_total), sizeof(struct cpu_stat));
 
-	g_data.p->dk = malloc(sizeof(struct dsk_stat) * disk_brk.diskmax+1);
-	g_data.q->dk = malloc(sizeof(struct dsk_stat) * disk_brk.diskmax+1);
-	disk_brk.disk_busy_peak = malloc(sizeof(double) * disk_brk.diskmax);
-	disk_brk.disk_rate_peak = malloc(sizeof(double) * disk_brk.diskmax);
-	for(i=0;i < disk_brk.diskmax;i++) {
+	if ((g_data.p->dk = malloc(sizeof(struct dsk_stat) * disk_brk.diskmax + 1)) == NULL) {
+		perror("alloc p`s dsk_stat memory");
+		return 0;
+	}
+	if ((g_data.q->dk = malloc(sizeof(struct dsk_stat) * disk_brk.diskmax + 1)) == NULL) {
+		perror("alloc q`s dsk_stat memory");
+		return 0;
+	}
+	if ((disk_brk.disk_busy_peak = malloc(sizeof(double) * disk_brk.diskmax)) == NULL) {
+		perror("alloc busy_peak memory");
+		return 0;
+	}
+	if ((disk_brk.disk_rate_peak = malloc(sizeof(double) * disk_brk.diskmax)) == NULL) {
+		perror("alloc disk_rate_peak memory");
+		return 0;
+	}
+	for(i = 0; i < disk_brk.diskmax; i++) {
 		disk_brk.disk_busy_peak[i]=0.0;
 		disk_brk.disk_rate_peak[i]=0.0;
 	}
-	cpuinfo_brk.cpu_peak = malloc(sizeof(double) * (CPUMAX + 1)); /* MAGIC */
+	if ((cpuinfo_brk.cpu_peak = malloc(sizeof(double) * (CPUMAX + 1))) == NULL) {
+		perror("alloc cpu_peak memory");
+		return 0;
+	}/* MAGIC */
 	for(i=0;i < cpuinfo_brk.max_cpus+1;i++)
 		cpuinfo_brk.cpu_peak[i]=0.0;
 
@@ -1986,7 +2005,10 @@ int main(int argc, char **argv)
     }
 	g_data.p->nprocs = g_data.q->nprocs = n;
 	/* Initialise the top processes table */
-	top_brk.topper = malloc(sizeof(struct topper ) * top_brk.topper_size); /* round up */
+	if ((top_brk.topper = malloc(sizeof(struct topper ) * top_brk.topper_size)) == NULL) {
+		perror("alloc topper memory");
+		return 0;
+	}/* round up */
 
 	/* Get Disk Stats. */
 	proc_disk(&disk_brk);

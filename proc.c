@@ -75,7 +75,10 @@ void proc_read (struct proc_file * proc, int num)
 
 	if(proc[num].size == 0) {
 		/* first time so allocate  initial now */
-		proc[num].buf = malloc(512);
+		if ((proc[num].buf = malloc(512)) == NULL) {
+			perror("alloc proc.buf memory");
+			exit(0);
+		}
 		proc[num].size = 512;
 	}
 

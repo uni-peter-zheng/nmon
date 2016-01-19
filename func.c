@@ -172,7 +172,10 @@ void __find_release(struct cpuinfo_brk * cpuinfo_brk)
 			if(fgets(tmpstr, 70, pop) == NULL)
 				break;
 			tmpstr[strlen(tmpstr)-1]=0; /* remove newline */
-			cpuinfo_brk->easy[i] = malloc(strlen(tmpstr)+1);
+			if((cpuinfo_brk->easy[i] = malloc(strlen(tmpstr)+1)) == NULL) {
+				perror("alloc easy[i] memory");
+				exit(0);
+			}
 			strcpy(cpuinfo_brk->easy[i],tmpstr);
 		}
 		pclose(pop);
@@ -184,7 +187,10 @@ void __find_release(struct cpuinfo_brk * cpuinfo_brk)
 			if(fgets(tmpstr, 70, pop) == NULL)
 				break;
 			tmpstr[strlen(tmpstr)-1]=0; /* remove newline */
-			cpuinfo_brk->lsb_release[i] = malloc(strlen(tmpstr)+1);
+			if ((cpuinfo_brk->lsb_release[i] = malloc(strlen(tmpstr)+1)) == NULL) {
+				perror("alloc lsb_release[i] memory");
+				exit(0);
+			}
 			strcpy(cpuinfo_brk->lsb_release[i],tmpstr);
 		}
 		pclose(pop);
@@ -292,7 +298,7 @@ int get_progress_data (struct global_data * g_data)
 
 	count = getprocs(g_data, 0, g_data->p);
 	if (count > p->nprocs) {
-		n = count + 128; /* allow for growth in the number of processes in the mean time */
+		n = count + 1; /* allow for growth in the number of processes in the mean time */
 		while ((tmp_p = realloc(p->procs,(sizeof(struct procsinfo) * (n+1)))) == NULL) /* add one to avoid overrun */
 			;
 		p->procs = (struct procsinfo *)tmp_p;
@@ -852,7 +858,10 @@ void load_dgroup(struct disk_brk * disk_brk, struct dsk_stat *dk)
 
 	if (disk_brk->dgroup_loaded == 2)
 		return;
-	disk_brk->dgroup_data = malloc(sizeof(int)*DGROUPS * DGROUPITEMS);
+	if ((disk_brk->dgroup_data = malloc(sizeof(int)*DGROUPS * DGROUPITEMS)) == NULL) {
+		perror("alloc dgroup_data memory");
+		exit(0);
+	}
 	for (i = 0; i < DGROUPS; i++)
 		for (j = 0; j < DGROUPITEMS; j++)
 			disk_brk->dgroup_data[i*DGROUPITEMS+j] = -1;
@@ -883,7 +892,10 @@ void load_dgroup(struct disk_brk * disk_brk, struct dsk_stat *dk)
 			continue;
 		}
 		/* Added +1 to be able to correctly store the terminating \0 character */
-		disk_brk->dgroup_name[disk_brk->dgroup_total_groups] = malloc(strlen(name)+1);
+		if ((disk_brk->dgroup_name[disk_brk->dgroup_total_groups] = malloc(strlen(name)+1)) == NULL) {
+			perror("alloc dgroup_total_groups memory");
+			exit(0);
+		}
 		strcpy(disk_brk->dgroup_name[disk_brk->dgroup_total_groups], name);
 
 		/* save the hdisks */

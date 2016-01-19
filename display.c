@@ -335,6 +335,7 @@ void show_top_info (struct top_brk * top_brk, unsigned long pagesize, double ign
 	int i;
 	int j;
 	int n;
+	int n_q;
 	int * x = &top_brk->ext->x;
 	int y = top_brk->ext->y;
 	struct data * p = top_brk->ext->p;
@@ -350,21 +351,24 @@ void show_top_info (struct top_brk * top_brk, unsigned long pagesize, double ign
 	top_brk->skipped = 0;
 
 	n = get_progress_num(p);
+	n_q = get_progress_num(q);
 	if (top_brk->topper_size < n) {
-		top_brk->topper = realloc(top_brk->topper, sizeof(struct topper ) * (n+1) ); /* add one to avoid overrun */
+		while ((top_brk->topper = realloc(top_brk->topper, sizeof(struct topper ) * (n+1))) == NULL) /* add one to avoid overrun */
+			;
 		top_brk->topper_size = n;
 	}
 	/* Sort the processes by CPU utilisation */
 	for ( i = 0, top_brk->max_sorted = 0; i < n; i++) {
 		/* move forward in the previous array to find a match*/
-		for(j=0;j < top_brk->cur_ps; j++) {
+		for(j = 0; j < top_brk->cur_ps && j < n_q; j++) {
 			if (p->procs[i].pi_pid == q->procs[j].pi_pid) { /* found a match */
 				top_brk->topper[top_brk->max_sorted].index = i;
 				top_brk->topper[top_brk->max_sorted].other = j;
 				top_brk->topper[top_brk->max_sorted].time =  TIMEDELTA(pi_utime,i,j) +
 					TIMEDELTA(pi_stime,i,j);
 				top_brk->topper[top_brk->max_sorted].size =  p->procs[i].statm_resident;
-#define COUNTDELTA(brk,member) ( (q->procs[brk->topper[j].other].member > p->procs[i].member) ? 0 : (p->procs[i].member  - q->procs[brk->topper[j].other].member) )
+//#define COUNTDELTA(brk,member) ( (q->procs[brk->topper[j].other].member > p->procs[i].member) ? 0 : (p->procs[i].member  - q->procs[brk->topper[j].other].member) )
+#define COUNTDELTA(brk,member) ( (q->procs[j].member > p->procs[i].member) ? 0 : (p->procs[i].member  - q->procs[j].member) )
 				if(top_brk->ext->isroot)
 					top_brk->topper[top_brk->max_sorted].io =  COUNTDELTA(top_brk,read_io) + COUNTDELTA(top_brk,write_io);
 				top_brk->max_sorted++;
@@ -394,7 +398,7 @@ void show_top_info (struct top_brk * top_brk, unsigned long pagesize, double ign
 		switch (top_brk->show_topmode) {
 			case 1:
 				mvwprintw(g_data->pad,*x+1, 1, "  PID      PPID  Pgrp Nice Prior Status    proc-Flag Command");
-				for (j = 0; j < show_count && j < top_brk->cur_ps; j++) {
+				for (j = 0; j < show_count && j < top_brk->cur_ps && j < top_brk->topper_size; j++) {
 					i = top_brk->topper[j].index;
 					if (p->procs[i].pi_pgrp == p->procs[i].pi_pid)
 						strcpy(pgrp, "none");
@@ -451,7 +455,7 @@ void show_top_info (struct top_brk * top_brk, unsigned long pagesize, double ign
 						formatstring = "         Used    KB   Set  Text  Data   Lib    KB  Min  Maj ";
 				}
 				mvwprintw(g_data->pad,*x+2,1, formatstring);
-				for (j = 0; j < show_count; j++) {
+				for (j = 0; j < show_count && j < top_brk->topper_size; j++) {
 					i = top_brk->topper[j].index;
 					if(!top_brk->ext->show_all) {
 						/* skip processes with zero CPU/io */
